@@ -8,167 +8,178 @@ from groq import Groq
 from typing import Tuple, Dict, Optional, Any
 import math
 from datetime import datetime
+import base64
 
 # ==============================================================================
-# 1. CONFIGURAÇÃO DE INFRAESTRUTURA DE UI (FRONT-END INSTITUCIONAL V12.0)
+# 1. CONFIGURAÇÃO DE INFRAESTRUTURA DE UI (FRONT-END INSTITUCIONAL)
 # ==============================================================================
 st.set_page_config(
-    page_title="Oráculo Quantamental | Wall Street Edition", 
-    page_icon="🏛️",
+    page_title="Terminal Quantamental | Inteligência Institucional", 
+    page_icon="💠",
     layout="wide", 
     initial_sidebar_state="expanded"
 )
 
-# Estilização Global CSS: Wall Street Retrô + Modern High-Tech (Cyber-Noir)
+# Estilização Global CSS: Design Profissional, High-Tech e Mobile-Responsive
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;700&family=Share+Tech+Mono&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
 
-    /* Fundo Absoluto e Fonte Base */
+    /* Variáveis Globais de Cor - Padrão Institucional Moderno */
+    :root {
+        --bg-dark: #0B0F19;
+        --card-bg: #111827;
+        --border-color: #1F2937;
+        --text-main: #F3F4F6;
+        --text-muted: #9CA3AF;
+        --accent-blue: #3B82F6;
+        --accent-green: #10B981;
+        --accent-red: #EF4444;
+        --accent-gold: #F59E0B;
+    }
+
+    /* Fundo e Fonte Base */
     .stApp {
-        background-color: #030303;
-        background-image: radial-gradient(circle at 50% 0%, #111111 0%, #030303 70%);
-        font-family: 'Space Grotesk', sans-serif;
-        color: #e0e0e0;
+        background-color: var(--bg-dark);
+        font-family: 'Inter', sans-serif;
+        color: var(--text-main);
     }
 
-    /* Títulos e Headers */
-    h1, h2, h3, h4, h5, h6 {
-        color: #D4AF37 !important; /* Ouro Wall Street */
+    /* Cabeçalhos */
+    h1, h2, h3, h4 {
+        color: #FFFFFF !important;
         font-weight: 700;
-        letter-spacing: 1px;
-        text-shadow: 0px 0px 10px rgba(212, 175, 55, 0.2);
+        letter-spacing: -0.5px;
     }
 
-    /* Estilização de Métricas (Cartões de Dados) */
+    /* Métricas (Cartões de Dados) */
     .stMetric { 
-        background: rgba(15, 15, 15, 0.8); 
-        padding: 20px; 
-        border-radius: 4px; 
-        border: 1px solid #222; 
-        border-top: 3px solid #D4AF37; 
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        backdrop-filter: blur(5px);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        background-color: var(--card-bg); 
+        padding: 1rem; 
+        border-radius: 8px; 
+        border: 1px solid var(--border-color);
+        border-left: 4px solid var(--accent-blue);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        transition: transform 0.2s ease, border-left-color 0.2s ease;
     }
     .stMetric:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(212, 175, 55, 0.15);
-        border-top: 3px solid #0DF2C9; /* Cyber Cyan Hover */
+        border-left-color: var(--accent-green);
     }
     .stMetric label { 
-        color: #888 !important; 
-        font-family: 'Space Grotesk', sans-serif;
-        font-weight: 400; 
-        font-size: 13px; 
+        color: var(--text-muted) !important; 
+        font-family: 'Inter', sans-serif;
+        font-weight: 600; 
+        font-size: 0.75rem; 
         text-transform: uppercase; 
-        letter-spacing: 1.5px;
+        letter-spacing: 0.05em;
     }
-    /* Fonte Monoespaçada Terminal para os Números */
     .stMetric div { 
-        font-family: 'Share Tech Mono', monospace !important;
-        color: #f8fafc !important; 
-        font-size: 28px !important;
+        font-family: 'JetBrains Mono', monospace !important;
+        color: var(--text-main) !important; 
+        font-size: 1.5rem !important;
     }
     .stMetric [data-testid="stMetricDelta"] div {
-        font-family: 'Share Tech Mono', monospace !important;
+        font-family: 'JetBrains Mono', monospace !important;
+        font-size: 0.9rem !important;
     }
-    /* Verde Fósforo para Alta, Vermelho Neon para Baixa */
-    .stMetric [data-testid="stMetricDelta"] svg[data-testid="stMetricDeltaIcon-Up"] { color: #00FF41; }
-    .stMetric [data-testid="stMetricDelta"] div:has(> svg[data-testid="stMetricDeltaIcon-Up"]) { color: #00FF41 !important; text-shadow: 0 0 8px rgba(0, 255, 65, 0.4);}
-    .stMetric [data-testid="stMetricDelta"] svg[data-testid="stMetricDeltaIcon-Down"] { color: #FF073A; }
-    .stMetric [data-testid="stMetricDelta"] div:has(> svg[data-testid="stMetricDeltaIcon-Down"]) { color: #FF073A !important; text-shadow: 0 0 8px rgba(255, 7, 58, 0.4);}
+    
+    /* Indicadores Positivo/Negativo */
+    .stMetric [data-testid="stMetricDelta"] svg[data-testid="stMetricDeltaIcon-Up"] { color: var(--accent-green); }
+    .stMetric [data-testid="stMetricDelta"] div:has(> svg[data-testid="stMetricDeltaIcon-Up"]) { color: var(--accent-green) !important; }
+    .stMetric [data-testid="stMetricDelta"] svg[data-testid="stMetricDeltaIcon-Down"] { color: var(--accent-red); }
+    .stMetric [data-testid="stMetricDelta"] div:has(> svg[data-testid="stMetricDeltaIcon-Down"]) { color: var(--accent-red) !important; }
 
-    /* Estrutura de Abas (Tabs) */
+    /* Abas (Tabs) - Com Scroll Horizontal para Mobile */
     .stTabs [data-baseweb="tab-list"] { 
-        gap: 2px; 
-        border-bottom: 1px solid #333; 
+        gap: 0; 
+        border-bottom: 2px solid var(--border-color); 
         background-color: transparent;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch; /* Suavidade no iOS */
+        padding-bottom: 5px;
     }
     .stTabs [data-baseweb="tab"] { 
-        background-color: #0a0a0a; 
-        border-radius: 4px 4px 0px 0px; 
-        padding: 15px 25px; 
-        border: 1px solid #222; 
-        border-bottom: none; 
-        color: #666;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background-color: transparent; 
+        border-radius: 6px 6px 0 0; 
+        padding: 0.75rem 1.5rem; 
+        border: none;
+        color: var(--text-muted);
+        font-weight: 600;
+        transition: all 0.2s ease;
     }
     .stTabs [aria-selected="true"] { 
-        background-color: #111; 
-        color: #D4AF37 !important; 
-        font-weight: 700; 
-        border-top: 2px solid #D4AF37;
-        box-shadow: inset 0 10px 20px -10px rgba(212, 175, 55, 0.1);
+        background-color: var(--card-bg); 
+        color: var(--accent-blue) !important; 
+        border-bottom: 2px solid var(--accent-blue);
     }
 
-    /* Botões High-Tech */
+    /* Botões */
     .stButton>button { 
-        background: linear-gradient(135deg, #111 0%, #222 100%);
-        color: #D4AF37; 
-        font-family: 'Space Grotesk', sans-serif;
-        font-weight: 700; 
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        border-radius: 4px; 
-        border: 1px solid #D4AF37; 
-        padding: 12px 24px; 
-        transition: all 0.4s ease; 
-        box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        background-color: var(--accent-blue);
+        color: #FFFFFF; 
+        font-family: 'Inter', sans-serif;
+        font-weight: 600; 
+        border-radius: 6px; 
+        border: none; 
+        padding: 0.5rem 1rem; 
+        transition: background-color 0.2s; 
     }
     .stButton>button:hover { 
-        background: #D4AF37; 
-        color: #030303; 
-        box-shadow: 0 0 20px rgba(212, 175, 55, 0.4); 
-        border: 1px solid #FFF;
+        background-color: #2563EB; 
+        color: #FFFFFF;
     }
 
     /* Inputs e Selectboxes */
     .stSelectbox div[data-baseweb="select"], .stTextInput input, .stNumberInput input {
-        background-color: #0a0a0a !important;
-        border: 1px solid #333 !important;
-        color: #0DF2C9 !important;
-        font-family: 'Share Tech Mono', monospace !important;
-        border-radius: 2px;
+        background-color: var(--card-bg) !important;
+        border: 1px solid var(--border-color) !important;
+        color: var(--text-main) !important;
+        border-radius: 6px;
     }
-    
-    /* Animação Ticker Tape (O Letreiro) */
+
+    /* Letreiro Institucional (Ticker Tape) */
     .ticker-wrap {
         width: 100%;
         overflow: hidden;
-        background-color: #0a0a0a;
-        padding-left: 100%;
+        background-color: var(--card-bg);
         box-sizing: content-box;
-        border-top: 1px solid #222;
-        border-bottom: 1px solid #222;
-        margin-bottom: 20px;
+        border-top: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 1.5rem;
+        border-radius: 4px;
     }
     .ticker {
         display: inline-block;
-        height: 30px;
-        line-height: 30px;  
+        height: 2rem;
+        line-height: 2rem;  
         white-space: nowrap;
         padding-right: 100%;
         box-sizing: content-box;
-        animation-iteration-count: infinite;
-        animation-timing-function: linear;
-        animation-name: ticker;
-        animation-duration: 40s;
-        font-family: 'Share Tech Mono', monospace;
-        color: #00FF41;
-        font-size: 14px;
-        letter-spacing: 1px;
+        animation: ticker 40s linear infinite;
+        font-family: 'JetBrains Mono', monospace;
+        color: var(--accent-blue);
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
     }
     @keyframes ticker {
-        0% { transform: translate3d(0, 0, 0); visibility: visible; }
+        0% { transform: translate3d(100%, 0, 0); }
         100% { transform: translate3d(-100%, 0, 0); }
+    }
+
+    /* Adaptações Mobile Específicas */
+    @media (max-width: 768px) {
+        .stMetric { padding: 0.75rem; }
+        .stMetric div { font-size: 1.25rem !important; }
+        h1 { font-size: 1.5rem !important; }
+        .stTabs [data-baseweb="tab"] { padding: 0.5rem 1rem; font-size: 0.85rem; }
     }
 </style>
 
-<!-- Injeção do Ticker Tape HTML -->
 <div class="ticker-wrap">
     <div class="ticker">
-        TERMINAL QUANTAMENTAL V12.0 ONLINE 🏛️ // CONEXÃO GROQ LLAMA 3.1 ESTABELECIDA // MOTOR BLACK-SCHOLES EXPANDIDO (GREGAS ATIVAS) // SELIC ALVO: 14.50% // CÂMBIO DXY EM ALTA // LIQUIDEZ INSTITUCIONAL MONITORADA VIA MFI & OBV // BEM-VINDO À MESA DE OPERAÇÕES.
+        💠 TERMINAL QUANTAMENTAL INSTITUCIONAL // CONEXÃO DE DADOS ESTABELECIDA // PROCESSAMENTO ALGORÍTMICO: ATIVO // MOTOR ESTOCÁSTICO: ONLINE // INTELIGÊNCIA ARTIFICIAL: LLAMA 3.1 SINCRONIZADA // MONITORIZAÇÃO CONTÍNUA DE RISCO.
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -177,10 +188,10 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # ==============================================================================
-# 2. BASE DE DADOS MACROECONÔMICA GLOBAL (KNOWLEDGE BASE V12.0)
+# 2. BASE DE DADOS MACROECONÔMICA GLOBAL
 # ==============================================================================
 GLOBAL_MACRO_CONTEXT = """
-[CENÁRIO MACROECONÔMICO E GEOPOLÍTICO GLOBAL - V12.0]
+[CENÁRIO MACROECONÔMICO E GEOPOLÍTICO GLOBAL]
 - BRASIL (COPOM): Taxa Selic mantida em 14.50% ao ano, configurando um dos maiores juros reais do planeta. Este cenário restritivo asfixia o varejo, alavanca a dívida das empresas de construção e atrai massivamente o capital para a Renda Fixa (CDI). A curva DI Futuro (Jan/31 a 13.36%) precifica risco fiscal elevado (descontrole de gastos públicos). A desancoragem do IPCA (5.04% Focus) anula qualquer chance de corte de juros a curto prazo.
 - ESTADOS UNIDOS (FED): Federal Reserve mantém Fed Funds Rate no patamar de 3.50% - 3.75%. O Core CPI (inflação núcleo) cravado em 2.8% demonstra uma inflação de serviços rígida e resistente. O Dólar (DXY) fortalecido drena o capital de risco dos países emergentes, impactando a bolsa brasileira diretamente. O mercado de Treasuries (títulos de 10 anos) suga a liquidez de ações de dividendos.
 - EUROPA (BCE): Zona do Euro enfrenta estagnação econômica, liderada pela recessão industrial da Alemanha. O BCE encontra dificuldades entre cortar juros para salvar o crescimento ou mantê-los para combater a inflação fragmentada.
@@ -253,6 +264,10 @@ def fetch_fundamental_data(ticker: str) -> Dict[str, Any]:
     except Exception:
         return {}
 
+def convert_df_to_csv(df: pd.DataFrame) -> bytes:
+    """Função de exportação de dados para download."""
+    return df.to_csv().encode('utf-8')
+
 # ==============================================================================
 # 5. MOTOR MATEMÁTICO INSTITUCIONAL (INDICADORES AVANÇADOS)
 # ==============================================================================
@@ -322,51 +337,49 @@ def calculate_advanced_indicators(df: pd.DataFrame, ma_window: int = 20) -> Tupl
     return df_calc, fibo_levels, ann_return, sharpe_ratio
 
 # ==============================================================================
-# Renderizador Gráfico Cyber-Noir (Plotly)
+# Renderizador Gráfico High-Tech (Plotly)
 # ==============================================================================
 def plot_master_chart(df: pd.DataFrame, ticker: str, fibo: Dict[str, float]) -> go.Figure:
     fig = make_subplots(rows=3, cols=1, shared_xaxes=True, 
                         vertical_spacing=0.04, 
-                        subplot_titles=(f'PRICE ACTION & BOLLINGER', 'FLUXO INSTITUCIONAL (MFI & OBV)', 'MOMENTUM (MACD)'),
+                        subplot_titles=(f'PRICE ACTION & BOLLINGER BANDS', 'MFI (MONEY FLOW INDEX) & OBV', 'MACD (MOMENTUM)'),
                         row_width=[0.2, 0.2, 0.6])
     
-    # Velas (Candlestick) com cores Wall Street
     fig.add_trace(go.Candlestick(
         x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close_Price'], 
         name='Preço',
-        increasing_line_color='#00FF41', decreasing_line_color='#FF073A'
+        increasing_line_color='#10B981', decreasing_line_color='#EF4444'
     ), row=1, col=1)
     
-    # Linhas de Tendência e Bollinger (Cyber Style)
-    fig.add_trace(go.Scatter(x=df.index, y=df['SMA'], mode='lines', line=dict(color='#D4AF37', width=1.5), name='SMA'), row=1, col=1)
-    fig.add_trace(go.Scatter(x=df.index, y=df['BB_Upper'], mode='lines', line=dict(color='rgba(13, 242, 201, 0.4)', width=1, dash='dash'), name='Bollinger Sup'), row=1, col=1)
-    fig.add_trace(go.Scatter(x=df.index, y=df['BB_Lower'], mode='lines', line=dict(color='rgba(13, 242, 201, 0.4)', width=1, dash='dash'), name='Bollinger Inf', fill='tonexty', fillcolor='rgba(13, 242, 201, 0.05)'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=df.index, y=df['SMA'], mode='lines', line=dict(color='#F59E0B', width=1.5), name='SMA'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=df.index, y=df['BB_Upper'], mode='lines', line=dict(color='rgba(59, 130, 246, 0.4)', width=1, dash='dash'), name='Bollinger Sup'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=df.index, y=df['BB_Lower'], mode='lines', line=dict(color='rgba(59, 130, 246, 0.4)', width=1, dash='dash'), name='Bollinger Inf', fill='tonexty', fillcolor='rgba(59, 130, 246, 0.05)'), row=1, col=1)
     
-    fibo_colors = ['#FF073A', '#f97316', '#0DF2C9', '#00FF41', '#8b5cf6']
+    fibo_colors = ['#EF4444', '#F97316', '#3B82F6', '#10B981', '#8B5CF6']
     for (level_name, price), color in zip(fibo.items(), fibo_colors):
         fig.add_hline(y=price, line_dash="dot", line_color=color, line_width=1, annotation_text=level_name, annotation_position="top right", annotation_font_color=color, row=1, col=1)
 
-    fig.add_trace(go.Scatter(x=df.index, y=df['MFI'], mode='lines', line=dict(color='#0DF2C9', width=2), name='MFI (Money Flow)'), row=2, col=1)
-    fig.add_hline(y=80, line_dash="dot", line_color="#FF073A", row=2, col=1)
-    fig.add_hline(y=20, line_dash="dot", line_color="#00FF41", row=2, col=1)
+    fig.add_trace(go.Scatter(x=df.index, y=df['MFI'], mode='lines', line=dict(color='#3B82F6', width=2), name='MFI (Money Flow)'), row=2, col=1)
+    fig.add_hline(y=80, line_dash="dot", line_color="#EF4444", row=2, col=1)
+    fig.add_hline(y=20, line_dash="dot", line_color="#10B981", row=2, col=1)
 
-    colors_macd = ['#00FF41' if val >= 0 else '#FF073A' for val in df['MACD_Hist']]
+    colors_macd = ['#10B981' if val >= 0 else '#EF4444' for val in df['MACD_Hist']]
     fig.add_trace(go.Bar(x=df.index, y=df['MACD_Hist'], marker_color=colors_macd, name='Histograma'), row=3, col=1)
-    fig.add_trace(go.Scatter(x=df.index, y=df['MACD'], mode='lines', line=dict(color='#0DF2C9', width=1.5), name='MACD'), row=3, col=1)
-    fig.add_trace(go.Scatter(x=df.index, y=df['Signal_Line'], mode='lines', line=dict(color='#D4AF37', width=1.5), name='Sinal'), row=3, col=1)
+    fig.add_trace(go.Scatter(x=df.index, y=df['MACD'], mode='lines', line=dict(color='#3B82F6', width=1.5), name='MACD'), row=3, col=1)
+    fig.add_trace(go.Scatter(x=df.index, y=df['Signal_Line'], mode='lines', line=dict(color='#F59E0B', width=1.5), name='Sinal'), row=3, col=1)
     
     fig.update_layout(
         template="plotly_dark", 
         xaxis_rangeslider_visible=False, 
         height=850, 
         margin=dict(l=10, r=10, t=40, b=10), 
-        paper_bgcolor="rgba(0,0,0,0)", # Transparente para absorver o fundo do Streamlit
-        plot_bgcolor="#0a0a0a",
-        font=dict(family="Space Grotesk", color="#e0e0e0"),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="#111827",
+        font=dict(family="Inter", color="#F3F4F6"),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
-    fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#222')
-    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#222')
+    fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#1F2937')
+    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#1F2937')
     return fig
 
 # ==============================================================================
@@ -410,7 +423,7 @@ def run_vectorized_backtest(df: pd.DataFrame, fast_period: int = 9, slow_period:
     }
 
 # ==============================================================================
-# 7. MOTOR DE SAZONALIDADE HISTÓRICA (V11.1 Patch ME)
+# 7. MOTOR DE SAZONALIDADE HISTÓRICA 
 # ==============================================================================
 def calculate_seasonality(df: pd.DataFrame) -> pd.DataFrame:
     df_saz = df.copy()
@@ -423,22 +436,22 @@ def calculate_seasonality(df: pd.DataFrame) -> pd.DataFrame:
     return seasonality
 
 def plot_seasonality(seasonality_df: pd.DataFrame, ticker: str) -> go.Figure:
-    colors = ['#00FF41' if val >= 0 else '#FF073A' for val in seasonality_df['Avg_Return_Pct']]
+    colors = ['#10B981' if val >= 0 else '#EF4444' for val in seasonality_df['Avg_Return_Pct']]
     fig = go.Figure(data=[go.Bar(
         x=seasonality_df.index, 
         y=seasonality_df['Avg_Return_Pct'],
         marker_color=colors,
         text=[f"{val:.2f}%" for val in seasonality_df['Avg_Return_Pct']],
         textposition='auto',
-        marker_line_color='#222',
+        marker_line_color='#1F2937',
         marker_line_width=1.5,
-        opacity=0.8
+        opacity=0.9
     )])
     fig.update_layout(title=f"Sazonalidade Histórica Mensal: {ticker}",
                       yaxis_title="Retorno Médio (%)", template="plotly_dark", 
-                      height=400, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#0a0a0a",
-                      font=dict(family="Space Grotesk", color="#e0e0e0"))
-    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#222')
+                      height=400, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#111827",
+                      font=dict(family="Inter", color="#F3F4F6"))
+    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#1F2937')
     return fig
 
 # ==============================================================================
@@ -463,14 +476,14 @@ def run_monte_carlo_simulation(df: pd.DataFrame, days_ahead: int = 30, simulatio
     
     fig = go.Figure()
     for i in range(simulations):
-        fig.add_trace(go.Scatter(y=price_paths[:, i], mode='lines', line=dict(color='rgba(13, 242, 201, 0.05)', width=1), showlegend=False))
+        fig.add_trace(go.Scatter(y=price_paths[:, i], mode='lines', line=dict(color='rgba(59, 130, 246, 0.05)', width=1), showlegend=False))
     
-    fig.add_trace(go.Scatter(y=price_paths.mean(axis=1), mode='lines', line=dict(color='#D4AF37', width=3), name='Caminho Médio Esperado'))
-    fig.update_layout(title=f"Motor Estocástico: {simulations} Caminhos Aleatórios ({days_ahead} pregões)",
-                      yaxis_title="Projeção de Preço", template="plotly_dark", height=450, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#0a0a0a",
-                      font=dict(family="Space Grotesk", color="#e0e0e0"))
-    fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#222')
-    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#222')
+    fig.add_trace(go.Scatter(y=price_paths.mean(axis=1), mode='lines', line=dict(color='#F59E0B', width=3), name='Caminho Médio Esperado'))
+    fig.update_layout(title=f"Estocástico: {simulations} Caminhos Aleatórios ({days_ahead} pregões)",
+                      yaxis_title="Projeção de Preço", template="plotly_dark", height=450, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#111827",
+                      font=dict(family="Inter", color="#F3F4F6"))
+    fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#1F2937')
+    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#1F2937')
     return price_paths, fig, expected_price
 
 # ==============================================================================
@@ -483,24 +496,21 @@ def norm_cdf(x: float) -> float:
     return (1.0 + math.erf(x / math.sqrt(2.0))) / 2.0
 
 def black_scholes_greeks(S: float, K: float, T: float, r: float, sigma: float) -> Dict[str, float]:
-    """Cálculo denso das métricas reais de Wall Street: Delta, Gamma, Theta, Vega."""
     if T <= 0 or sigma <= 0: return {'call_price': 0, 'put_price': 0, 'delta_call': 0, 'gamma': 0, 'vega': 0, 'theta_call': 0}
     
     d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
     d2 = d1 - sigma * math.sqrt(T)
     
-    # Prêmios Justos
     call_price = S * norm_cdf(d1) - K * math.exp(-r * T) * norm_cdf(d2)
     put_price = K * math.exp(-r * T) * norm_cdf(-d2) - S * norm_cdf(-d1)
     
-    # As Gregas (Greeks)
     delta_call = norm_cdf(d1)
     gamma = standard_normal_pdf(d1) / (S * sigma * math.sqrt(T))
-    vega = S * standard_normal_pdf(d1) * math.sqrt(T) / 100 # Dividido por 100 para sensibilidade de 1%
+    vega = S * standard_normal_pdf(d1) * math.sqrt(T) / 100 
     
     theta_call_part1 = -(S * standard_normal_pdf(d1) * sigma) / (2 * math.sqrt(T))
     theta_call_part2 = r * K * math.exp(-r * T) * norm_cdf(d2)
-    theta_call = (theta_call_part1 - theta_call_part2) / 365 # Sensibilidade diária
+    theta_call = (theta_call_part1 - theta_call_part2) / 365 
     
     return {
         'call_price': call_price, 'put_price': put_price, 
@@ -515,26 +525,26 @@ def generate_ai_response(prompt: str, context_data: str, api_key: str, persona: 
         client = Groq(api_key=api_key)
         
         if persona == "Estrategista Macro (Foco em Juros e Geopolítica)":
-            foco = "Sua prioridade máxima é cruzar o preço do ativo com a taxa Selic (14.50%), inflação e crises mundiais. Explique o cenário sistêmico."
+            foco = "A prioridade máxima é cruzar o preço do ativo com a taxa Selic (14.50%), inflação e dados globais. Explique o cenário macroeconómico."
         elif persona == "Quant Trader (Foco em Backtest e Volatilidade)":
-            foco = "Sua prioridade máxima é analisar o Backtest da estratégia EMA, os níveis de Fibonacci, o Monte Carlo e a volatilidade ATR. Despreze um pouco a macroeconomia e foque na matemática gráfica."
+            foco = "A prioridade máxima é analisar o Backtest, os níveis de Fibonacci, Monte Carlo e a volatilidade. Foco rigoroso na matemática gráfica e quantitativa."
         else:
-            foco = "Sua prioridade é analisar os fundamentos, o Balanço (P/L, ROE) e avaliar o risco paramétrico de Position Sizing."
+            foco = "A prioridade é analisar os fundamentos, múltiplos contábeis (P/L, ROE) e avaliar o risco paramétrico para dimensionamento de posições."
         
-        system_instruction = f"""Você é o 'Oráculo Quantamental V12.0', o Cérebro Neural de uma Tesouraria Institucional de Elite de Wall Street.
+        system_instruction = f"""És o 'Cérebro Quantamental', o Motor de Inteligência Artificial de um Terminal Institucional.
         
-        DIRETRIZES DA PERSONA ATUAL:
+        DIRETRIZES DA PERSONA:
         {foco}
         
         REGRAS INQUEBRÁVEIS:
-        1. Você acaba de receber um dossiê monumental de dados. NUNCA invente números. Use exatamente os dados estatísticos que lhe foram fornecidos no Payload.
-        2. Aja como um gestor cínico, impiedoso com falsas esperanças e brutalmente analítico.
-        3. FORMATAÇÃO: É PROIBIDO o uso de LaTeX no texto. Use EXCLUSIVAMENTE 'R$' ou 'USD'. Utilize Bullet Points massivamente para criar relatórios táticos de fácil leitura.
-        4. O operador depende da sua inteligência para alocar milhões. Seja preciso, denso e cite a matriz estatística.
+        1. Tens acesso a um ficheiro massivo de dados processados. NUNCA inventes números. Baseia-te EXCLUSIVAMENTE nos dados fornecidos.
+        2. Mantém uma postura analítica, institucional, pragmática e realista.
+        3. FORMATAÇÃO: É PROIBIDO o uso de LaTeX no texto. Usa 'R$' ou 'USD'. Utiliza Bullet Points de forma estratégica para facilitar a leitura.
+        4. O operador procura precisão. Sê direto, denso e fundamenta as decisões na matriz estatística e técnica disponível.
         """
         
         payload = f"{GLOBAL_MACRO_CONTEXT}\n\n[MATRIZ ALGORÍTMICA ABSOLUTA DO ATIVO]\n{context_data}"
-        user_message = f"[DATA LAKE INJETADO]\n{payload}\n\n[COMANDO DA MESA DE OPERAÇÕES]\n{prompt}"
+        user_message = f"[DATA LAKE INJETADO]\n{payload}\n\n[COMANDO DO OPERADOR]\n{prompt}"
         
         chat_completion = client.chat.completions.create(
             messages=[{"role": "system", "content": system_instruction}, {"role": "user", "content": user_message}],
@@ -543,59 +553,73 @@ def generate_ai_response(prompt: str, context_data: str, api_key: str, persona: 
         )
         return chat_completion.choices[0].message.content
     except Exception as e:
-        return f"ALERTA CRÍTICO: Colapso na sinapse neural (API Groq). Verifique chave e conexão. Erro: {e}"
+        return f"ALERTA CRÍTICO: Falha na comunicação com o servidor de IA (Groq). Verifique a chave de API e a conexão. Erro detalhado: {e}"
 
 # ==============================================================================
-# 11. THREAD PRINCIPAL DO TERMINAL (DASHBOARD & INTERFACE V12.0)
+# 11. THREAD PRINCIPAL DO TERMINAL (DASHBOARD & INTERFACE RESPONSIVA)
 # ==============================================================================
 def main():
-    # Logo e Título com formatação Cyber-Noir
-    st.markdown("<h1><span style='color:#D4AF37'>🏛️ ORÁCULO QUANTAMENTAL</span> <span style='color:#333'>//</span> <span style='color:#0DF2C9; font-size: 0.6em;'>V12.0 WALL STREET EDITION</span></h1>", unsafe_allow_html=True)
+    # Cabeçalho Limpo e Profissional
+    st.markdown("<h1><span style='color:#3B82F6'>💠 TERMINAL QUANTAMENTAL</span> <span style='color:#4B5563; font-weight: 300;'>| INTELIGÊNCIA INSTITUCIONAL</span></h1>", unsafe_allow_html=True)
     
-    # BARRA LATERAL (CONTROLE DE MISSÃO)
+    # BARRA LATERAL (CONTROLE E EXTRAÇÃO)
     with st.sidebar:
-        st.markdown("<h2 style='color:#D4AF37; font-family: Space Grotesk;'>🗄️ MAINFRAME DE CONTROLE</h2>", unsafe_allow_html=True)
-        selecao_ativo = st.selectbox("DIRETÓRIO DE ATIVOS:", list(CATALOGO_INSTITUCIONAL.keys()))
+        st.markdown("<h3 style='color:#9CA3AF; font-size:0.9rem; text-transform:uppercase;'>Painel de Controlo</h3>", unsafe_allow_html=True)
+        selecao_ativo = st.selectbox("Selecione o Ativo:", list(CATALOGO_INSTITUCIONAL.keys()))
         
         if selecao_ativo == "Pesquisa Manual de Ticker":
-            ticker = st.text_input("TICKER ALVO (Ex: BBDC4.SA):", value="PETR4.SA").upper()
+            ticker = st.text_input("Ticker (Ex: BBDC4.SA):", value="PETR4.SA").upper()
         else:
             ticker = CATALOGO_INSTITUCIONAL[selecao_ativo]
             
         col_t1, col_t2 = st.columns(2)
-        with col_t1: period = st.selectbox("RANGE HISTÓRICO", ["6mo", "1y", "2y", "5y", "max"], index=2)
-        with col_t2: ma_window = st.number_input("SMA BASE", min_value=5, max_value=200, value=20)
+        with col_t1: period = st.selectbox("Período", ["6mo", "1y", "2y", "5y", "max"], index=2)
+        with col_t2: ma_window = st.number_input("SMA Base", min_value=5, max_value=200, value=20)
         
         st.markdown("---")
         api_key = "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"
+        
+        # Status do Sistema Profissional
         st.markdown("""
-        <div style='background-color: #0a0a0a; border: 1px solid #00FF41; padding: 15px; border-radius: 4px; font-family: "Share Tech Mono", monospace;'>
-            <span style='color:#00FF41'>🟢 SISTEMA CORE V12.0: ONLINE</span><br><br>
-            <span style='color:#888'>&gt; BACKTEST ENGINE:</span> <span style='color:#0DF2C9'>OK</span><br>
-            <span style='color:#888'>&gt; MOTOR BLACK-SCHOLES:</span> <span style='color:#0DF2C9'>OK</span><br>
-            <span style='color:#888'>&gt; IA LLAMA 3.1:</span> <span style='color:#D4AF37'>CONECTADA</span>
+        <div style='background-color: var(--card-bg); border: 1px solid var(--border-color); padding: 1rem; border-radius: 6px; font-family: "JetBrains Mono", monospace; font-size: 0.8rem;'>
+            <span style='color:var(--accent-green)'>● STATUS: OPERACIONAL</span><br><br>
+            <span style='color:var(--text-muted)'>[✓] BACKTEST ENGINE</span><br>
+            <span style='color:var(--text-muted)'>[✓] BLACK-SCHOLES</span><br>
+            <span style='color:var(--text-muted)'>[✓] LLAMA 3.1 NPU</span>
         </div>
         """, unsafe_allow_html=True)
 
-    # INGESTÃO DE DADOS ASSÍNCRONA
+    # PROCESSAMENTO E INGESTÃO DE DADOS
     df_raw = fetch_market_data(ticker, period)
     fundament_data = fetch_fundamental_data(ticker)
     contexto_invisivel = "Pipeline Vazio."
     
     if df_raw is not None:
-        # PIPELINE MATEMÁTICO
+        # EXECUÇÃO DO PIPELINE MATEMÁTICO
         df_processed, fibo_levels, ann_return, sharpe_ratio = calculate_advanced_indicators(df_raw, ma_window)
         mc_paths, mc_fig, mc_expected_price = run_monte_carlo_simulation(df_processed, days_ahead=30, simulations=100)
         backtest_results = run_vectorized_backtest(df_processed, fast_period=9, slow_period=21)
         seasonality_df = calculate_seasonality(df_processed)
         
-        # SNAPSHOT ATUAL
+        # EXPORTAÇÃO DE DADOS (NOVA FUNCIONALIDADE)
+        with st.sidebar:
+            st.markdown("<br><h3 style='color:#9CA3AF; font-size:0.9rem; text-transform:uppercase;'>Exportação de Dados</h3>", unsafe_allow_html=True)
+            csv_data = convert_df_to_csv(df_processed)
+            st.download_button(
+                label="📥 Transferir Matriz de Dados (CSV)",
+                data=csv_data,
+                file_name=f"{ticker}_quant_matrix.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+
+        # FOTOGRAFIA EM TEMPO REAL
         ultima = df_processed.iloc[-1]
         c_price, c_sma, c_rsi, c_macd, c_sig = ultima['Close_Price'], ultima['SMA'], ultima['RSI'], ultima['MACD'], ultima['Signal_Line']
         c_atr, c_bbw, c_stoch, c_obv, c_mfi = ultima['ATR'], ultima['BB_Width'], ultima['Stoch_K'], ultima['OBV'], ultima['MFI']
         
         trend = "ALTA TÉCNICA" if c_price > c_sma else "PRESSÃO VENDEDORA"
-        if pd.isna(c_rsi): rsi_txt = "Falta dados"
+        if pd.isna(c_rsi): rsi_txt = "Liquidez Insuficiente"
         elif c_rsi > 70: rsi_txt = f"{c_rsi:.1f} (SOBRECOMPRADO)"
         elif c_rsi < 30: rsi_txt = f"{c_rsi:.1f} (SOBREVENDIDO)"
         else: rsi_txt = f"{c_rsi:.1f} (NEUTRO)"
@@ -617,7 +641,7 @@ def main():
         - Estocástico Lento (%K): {c_stoch:.1f}% | Bollinger Width Squeeze: {c_bbw:.3f}
         - Retorno Anualizado da Série: {ann_return:.2f}% | Sharpe Ratio: {sharpe_ratio:.2f} (Tx Livre Risco 14.50%)
         
-        [NÍVEIS ÁUREOS DE FIBONACCI]
+        [NÍVEIS DE FIBONACCI]
         {fibo_str}
         
         [MONTE CARLO RANDOM WALK (Próximos 30 dias)]
@@ -631,153 +655,155 @@ def main():
         [SAZONALIDADE]
         - Mês Atual ({current_month_str}): Média histórica de {saz_atual:.2f}%.
         
-        [BALANÇO FUNDAMENTALISTA (MÚLTIPLOS)]
+        [BALANÇO FUNDAMENTALISTA E MÚLTIPLOS]
         {fundamentos_str}
         """
 
     # -------------------------------------------------------------------------
-    # LAYOUT DE 6 ABAS GLASSMORPHISM
+    # LAYOUT RESPONSIVO: 6 ABAS DE ANÁLISE PROFUNDA
     # -------------------------------------------------------------------------
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        "📈 TERMINAL GRÁFICO", 
-        "⚙️ GREGAS & RISCO", 
-        "🎲 ALGORITMOS M.C.",
-        "🏢 DRE & VALUATION",
-        "⚖️ BACKTEST ENGINE",
-        "🧠 ORÁCULO IA"
+        "📊 GRÁFICO E PREÇO", 
+        "⚙️ RISCO & OPÇÕES", 
+        "🎲 MODELOS ESTATÍSTICOS",
+        "🏢 FUNDAMENTOS (DRE)",
+        "⚖️ TESTE DE ESTRATÉGIA",
+        "🧠 CÉREBRO IA"
     ])
 
     with tab1:
         if df_raw is not None:
             c1, c2, c3, c4 = st.columns(4)
             delta_pct = ((c_price / df_raw['Close'].iloc[-2]) - 1) * 100 if len(df_raw) > 1 else 0
-            c1.metric("PREÇO DE MERCADO", f"R$ {c_price:.2f}", delta=f"{delta_pct:.2f}%")
+            c1.metric("COTAÇÃO ATUAL", f"R$ {c_price:.2f}", delta=f"{delta_pct:.2f}%")
             c2.metric("VOLATILIDADE (ATR)", f"R$ {c_atr:.2f}")
-            c3.metric("FLUXO FINANCEIRO (MFI)", f"{c_mfi:.1f}")
-            c4.metric("DRIFT ANUAL", f"{ann_return:.1f}%", delta=f"Sharpe: {sharpe_ratio:.2f}")
+            c3.metric("FLUXO DE CAPITAL (MFI)", f"{c_mfi:.1f}")
+            c4.metric("RENTABILIDADE ANUAL", f"{ann_return:.1f}%", delta=f"Índ. Sharpe: {sharpe_ratio:.2f}")
             
             st.markdown("<br>", unsafe_allow_html=True)
             fig_master = plot_master_chart(df_processed, ticker, fibo_levels)
             st.plotly_chart(fig_master, use_container_width=True)
         else:
-            st.error("Erro fatal: Série temporal corrompida ou ticker inexistente.")
+            st.error("Falha na sincronização dos dados de mercado. Verifique o ticker selecionado ou a sua ligação à internet.")
 
     with tab2:
         if df_raw is not None:
-            st.markdown("<h3 style='color:#0DF2C9;'>/// ALOCAÇÃO PARAMÉTRICA SPOT</h3>", unsafe_allow_html=True)
-            with st.form("risk_form_v12"):
+            st.markdown("### Dimensionamento de Posição Paramétrica")
+            with st.form("risk_form"):
                 c_f1, c_f2 = st.columns(2)
                 with c_f1:
-                    capital = st.number_input("Capital da Operação (R$)", min_value=0.0, value=250000.0, step=10000.0)
-                    risk_pct = st.number_input("Drawdown Permitido (%)", min_value=0.1, max_value=10.0, value=1.0, step=0.1)
+                    capital = st.number_input("Capital Operacional Alocado (R$)", min_value=0.0, value=250000.0, step=10000.0)
+                    risk_pct = st.number_input("Tolerância a Drawdown (%)", min_value=0.1, max_value=10.0, value=1.0, step=0.1)
                 with c_f2:
-                    entry_price = st.number_input("Target de Execução (Compra)", min_value=0.0, value=c_price, step=0.01)
-                    stop_loss = st.number_input("Proteção Hard-Stop", min_value=0.0, value=c_price - (c_atr * 1.5), step=0.01)
-                sub_btn = st.form_submit_button("COMPUTAR EXPOSIÇÃO")
+                    entry_price = st.number_input("Alvo de Execução (Entrada)", min_value=0.0, value=c_price, step=0.01)
+                    stop_loss = st.number_input("Nível de Proteção (Stop Loss)", min_value=0.0, value=c_price - (c_atr * 1.5), step=0.01)
+                sub_btn = st.form_submit_button("PROCESSAR ALOCAÇÃO")
 
             if sub_btn:
                 if stop_loss >= entry_price:
-                    st.error("ERRO: Stop Loss deve ser estritamente inferior ao target de entrada (Operação Long).")
+                    st.error("ALERTA: O Stop Loss deve ser estritamente inferior ao alvo de entrada para operações compradas (Long).")
                 else:
                     risk_val = capital * (risk_pct / 100)
                     shares = int(risk_val // (entry_price - stop_loss))
-                    st.success("✅ PROTOCOLO DE LIQUIDEZ APROVADO.")
+                    st.success("✅ Dimensionamento matemático aprovado.")
                     cr1, cr2, cr3 = st.columns(3)
-                    cr1.metric("LOTES LIBERADOS", f"{shares} AÇÕES")
-                    cr2.metric("CAIXA BRUTO EXIGIDO", f"R$ {(shares * entry_price):,.2f}")
-                    cr3.metric("RISCO ABSOLUTO (R$)", f"R$ {risk_val:,.2f}")
+                    cr1.metric("LOTES PERMITIDOS", f"{shares} Ações")
+                    cr2.metric("EXPOSIÇÃO FINANCEIRA", f"R$ {(shares * entry_price):,.2f}")
+                    cr3.metric("RISCO DE CAPITAL BLOQUEADO", f"R$ {risk_val:,.2f}")
             
-            st.markdown("<br><h3 style='color:#0DF2C9;'>/// MOTOR BLACK-SCHOLES (GREGAS EXPANDIDAS)</h3>", unsafe_allow_html=True)
-            with st.form("bs_form_v12"):
+            st.markdown("---")
+            st.markdown("### Motor Europeu de Precificação (Black-Scholes & Gregas)")
+            with st.form("bs_form"):
                 cb1, cb2, cb3 = st.columns(3)
                 with cb1:
-                    bs_spot = st.number_input("Spot Atual", value=c_price, step=0.1)
-                    bs_strike = st.number_input("Strike Desejado", value=c_price * 1.05, step=0.1)
+                    bs_spot = st.number_input("Preço Base (Spot)", value=c_price, step=0.1)
+                    bs_strike = st.number_input("Preço de Exercício (Strike)", value=c_price * 1.05, step=0.1)
                 with cb2:
                     bs_days = st.number_input("Dias Úteis P/ Vencimento", value=21, min_value=1)
-                    bs_rf = st.number_input("Selic Anual (%)", value=14.50, step=0.10)
+                    bs_rf = st.number_input("Taxa de Juro S/ Risco (%)", value=14.50, step=0.10)
                 with cb3:
                     vol_estimada = (c_atr / c_price) * math.sqrt(252) * 100
-                    bs_vol = st.number_input("Volatilidade Implícita (%)", value=float(vol_estimada), step=1.0)
-                bs_submit = st.form_submit_button("PROCESSAR DERIVATIVOS")
+                    bs_vol = st.number_input("Volatilidade Implícita Anual (%)", value=float(vol_estimada), step=1.0)
+                bs_submit = st.form_submit_button("COMPUTAR DERIVATIVO")
                 
             if bs_submit:
                 greeks = black_scholes_greeks(bs_spot, bs_strike, bs_days/252.0, bs_rf/100.0, bs_vol/100.0)
-                st.success("✅ CÁLCULO ESTOCÁSTICO CONCLUÍDO.")
+                st.success("✅ Simulação Estocástica de Opções Concluída.")
                 
-                # Linha 1: Prêmios e Delta
                 cg1, cg2, cg3 = st.columns(3)
-                cg1.metric("PRÊMIO JUSTO CALL", f"R$ {greeks['call_price']:.3f}")
-                cg2.metric("PRÊMIO JUSTO PUT", f"R$ {greeks['put_price']:.3f}")
-                cg3.metric("DELTA (Probabilidade)", f"{greeks['delta_call'] * 100:.1f}%")
+                cg1.metric("PRÊMIO TEÓRICO CALL", f"R$ {greeks['call_price']:.3f}")
+                cg2.metric("PRÊMIO TEÓRICO PUT", f"R$ {greeks['put_price']:.3f}")
+                cg3.metric("DELTA (Prob. de Exercício)", f"{greeks['delta_call'] * 100:.1f}%")
                 
-                # Linha 2: Gregas Avançadas
                 cg4, cg5, cg6 = st.columns(3)
-                cg4.metric("GAMMA (Aceleração)", f"{greeks['gamma']:.4f}")
+                cg4.metric("GAMMA (Taxa de Variação)", f"{greeks['gamma']:.4f}")
                 cg5.metric("VEGA (Sens. Volatilidade)", f"R$ {greeks['vega']:.3f}")
-                cg6.metric("THETA (Corrosão Diária)", f"R$ {greeks['theta_call']:.3f}")
+                cg6.metric("THETA (Decaimento Temporal)", f"R$ {greeks['theta_call']:.3f}")
 
     with tab3:
         if df_raw is not None:
-            c_alg1, c_alg2 = st.columns(2)
+            c_alg1, c_alg2 = st.columns([1, 1])
             with c_alg1:
-                st.markdown("<h3 style='color:#0DF2C9;'>/// HEATMAP DE SAZONALIDADE</h3>", unsafe_allow_html=True)
+                st.markdown("### Mapa de Sazonalidade")
+                st.markdown("<p style='color:var(--text-muted); font-size:0.9rem;'>Avaliação do retorno percentual médio mensal baseada na série temporal analisada.</p>", unsafe_allow_html=True)
                 fig_saz = plot_seasonality(seasonality_df, ticker)
                 st.plotly_chart(fig_saz, use_container_width=True)
             with c_alg2:
-                st.markdown("<h3 style='color:#0DF2C9;'>/// MONTE CARLO RANDOM WALK</h3>", unsafe_allow_html=True)
+                st.markdown("### Simulação Estocástica (Monte Carlo)")
+                st.markdown("<p style='color:var(--text-muted); font-size:0.9rem;'>Geração de 100 trajetórias de preços prováveis usando a variância histórica.</p>", unsafe_allow_html=True)
                 st.plotly_chart(mc_fig, use_container_width=True)
-                st.markdown(f"<div style='border:1px solid #D4AF37; padding: 10px; color:#D4AF37; text-align:center; font-family: \"Share Tech Mono\";'>ALVO DE CONVERGÊNCIA MATEMÁTICA: R$ {mc_expected_price:.2f}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='background-color:var(--card-bg); border: 1px solid var(--accent-blue); padding: 10px; border-radius: 6px; text-align:center;'>ALVO ESTATÍSTICO (30 DIAS): <strong>R$ {mc_expected_price:.2f}</strong></div>", unsafe_allow_html=True)
 
     with tab4:
-        st.markdown("<h3 style='color:#0DF2C9;'>/// MÚLTIPLOS CONTÁBEIS (VALUATION)</h3>", unsafe_allow_html=True)
+        st.markdown("### Diagnóstico Fundamentalista (Múltiplos e Balanço)")
         if fundament_data:
             col_f1, col_f2, col_f3 = st.columns(3)
-            col_f1.metric("MARKET CAP", f"{fundament_data.get('Market Cap', 'N/A')}")
-            col_f1.metric("P/L", f"{fundament_data.get('P/E Ratio (P/L)', 'N/A')}")
+            col_f1.metric("VALOR DE MERCADO (CAP)", f"{fundament_data.get('Market Cap', 'N/A')}")
+            col_f1.metric("P/L (PREÇO / LUCRO)", f"{fundament_data.get('P/E Ratio (P/L)', 'N/A')}")
             col_f1.metric("DIVIDEND YIELD", f"{fundament_data.get('Dividend Yield', 0) * 100 if isinstance(fundament_data.get('Dividend Yield'), (int, float)) else 'N/A'}%")
             
-            col_f2.metric("P/VP", f"{fundament_data.get('Price to Book (P/VP)', 'N/A')}")
-            col_f2.metric("ROE (RETORNO S/ PATR.)", f"{fundament_data.get('ROE (Retorno s/ Patrimônio)', 0) * 100 if isinstance(fundament_data.get('ROE (Retorno s/ Patrimônio)'), (int, float)) else 'N/A'}%")
+            col_f2.metric("P/VP (PREÇO / V. PATR.)", f"{fundament_data.get('Price to Book (P/VP)', 'N/A')}")
+            col_f2.metric("ROE (RENTABILIDADE)", f"{fundament_data.get('ROE (Retorno s/ Patrimônio)', 0) * 100 if isinstance(fundament_data.get('ROE (Retorno s/ Patrimônio)'), (int, float)) else 'N/A'}%")
             col_f2.metric("MARGEM LÍQUIDA", f"{fundament_data.get('Profit Margin', 0) * 100 if isinstance(fundament_data.get('Profit Margin'), (int, float)) else 'N/A'}%")
             
-            col_f3.metric("DÍVIDA / PATRIMÔNIO", f"{fundament_data.get('Debt to Equity (Dívida/Patrimônio)', 'N/A')}")
+            col_f3.metric("DÍVIDA / PATRIMÓNIO", f"{fundament_data.get('Debt to Equity (Dívida/Patrimônio)', 'N/A')}")
             col_f3.metric("LIQUIDEZ CORRENTE", f"{fundament_data.get('Current Ratio (Liquidez)', 'N/A')}")
             col_f3.metric("MARGEM EBITDA", f"{fundament_data.get('EBITDA Margin', 0) * 100 if isinstance(fundament_data.get('EBITDA Margin'), (int, float)) else 'N/A'}%")
         else:
-            st.warning("Indicadores não mapeados (Fundos, ETFs ou Falha de DRE).")
+            st.warning("Múltiplos indisponíveis para a entidade selecionada (frequente em Índices ou Fundos ETF).")
 
     with tab5:
         if df_raw is not None:
-            st.markdown("<h3 style='color:#0DF2C9;'>/// ALGORITMO CROSS-EMA (9 vs 21)</h3>", unsafe_allow_html=True)
+            st.markdown("### Backtest Vetorizado: Cruzamento de Médias Móveis (EMA 9 vs 21)")
             
             c_bt1, c_bt2, c_bt3, c_bt4 = st.columns(4)
-            c_bt1.metric("ALPHA ESTRATÉGICO", f"{backtest_results['total_return_pct']:.2f}%")
+            c_bt1.metric("RETORNO ESTRATÉGICO", f"{backtest_results['total_return_pct']:.2f}%")
             c_bt2.metric("BENCHMARK (BUY & HOLD)", f"{backtest_results['buy_hold_pct']:.2f}%")
-            c_bt3.metric("MAX DRAWDOWN", f"{backtest_results['max_drawdown_pct']:.2f}%")
-            c_bt4.metric("WIN RATE TÉCNICO", f"{backtest_results['win_rate_pct']:.1f}%")
+            c_bt3.metric("DRAWDOWN MÁXIMO", f"{backtest_results['max_drawdown_pct']:.2f}%")
+            c_bt4.metric("WIN RATE (EFICIÊNCIA)", f"{backtest_results['win_rate_pct']:.1f}%")
             
             curve_df = backtest_results['curve_df']
             fig_eq = go.Figure()
-            fig_eq.add_trace(go.Scatter(x=curve_df.index, y=curve_df['Equity_Curve'], mode='lines', name='Cross EMA', line=dict(color='#0DF2C9', width=2)))
-            fig_eq.add_trace(go.Scatter(x=curve_df.index, y=curve_df['Buy_Hold_Curve'], mode='lines', name='Buy & Hold', line=dict(color='#333333', width=2, dash='dot')))
-            fig_eq.update_layout(title="CURVA DE CAPITAL (EQUITY CURVE)", template="plotly_dark", height=400, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#0a0a0a", font=dict(family="Space Grotesk", color="#e0e0e0"))
-            fig_eq.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#222')
-            fig_eq.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#222')
+            fig_eq.add_trace(go.Scatter(x=curve_df.index, y=curve_df['Equity_Curve'], mode='lines', name='Algoritmo Cross EMA', line=dict(color='#10B981', width=2)))
+            fig_eq.add_trace(go.Scatter(x=curve_df.index, y=curve_df['Buy_Hold_Curve'], mode='lines', name='Buy & Hold', line=dict(color='#6B7280', width=2, dash='dot')))
+            fig_eq.update_layout(title="CURVA DE CRESCIMENTO DE CAPITAL (EQUITY CURVE)", template="plotly_dark", height=400, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#111827", font=dict(family="Inter", color="#F3F4F6"))
+            fig_eq.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#1F2937')
+            fig_eq.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#1F2937')
             st.plotly_chart(fig_eq, use_container_width=True)
 
     with tab6:
         if df_raw is not None:
-            st.markdown("<h3 style='color:#D4AF37;'>/// REDE NEURAL QUANTAMENTAL</h3>", unsafe_allow_html=True)
+            st.markdown("### Centro de Comando IA (Integração Llama 3.1)")
+            st.markdown("<p style='color:var(--text-muted); font-size:0.9rem;'>O modelo avalia a totalidade do ecossistema de dados processados, incluindo matemática quantitativa, balanço financeiro e variáveis macroeconómicas.</p>", unsafe_allow_html=True)
             
             col_persona, col_btn = st.columns([3, 1])
             with col_persona:
-                persona_ia = st.radio("MODO DE RACIOCÍNIO SINTÉTICO:", 
-                                     ["Analista Fundamentalista (Valuation & Risco)", 
-                                      "Estrategista Macro (Foco em Juros e Geopolítica)", 
-                                      "Quant Trader (Foco em Backtest e Volatilidade)"], horizontal=True)
+                persona_ia = st.radio("Enfoque Analítico da Resposta:", 
+                                     ["Gestão de Risco e Análise Fundamentalista", 
+                                      "Estratégia Macro e Geopolítica Global", 
+                                      "Trading Quantitativo e Modelos de Volatilidade"], horizontal=True)
             with col_btn:
-                if st.button("🔌 PURGAR MEMÓRIA", use_container_width=True):
+                if st.button("🧹 LIMPAR HISTÓRICO", use_container_width=True):
                     st.session_state.messages = []
                     st.rerun()
             
@@ -786,16 +812,16 @@ def main():
             with chat_container:
                 for msg in st.session_state.messages:
                     with st.chat_message(msg["role"]):
-                        st.markdown(f"<span style='font-family: Space Grotesk;'>{msg['content']}</span>", unsafe_allow_html=True)
+                        st.markdown(msg["content"])
 
-            if prompt := st.chat_input("Insira o comando. Ex: 'Qual o risco de executar o modelo Long neste nível de RSI?'"):
+            if prompt := st.chat_input("Introduza a sua questão (Ex: 'Analise o risco de mercado com base no backtest e no MFI atual.')"):
                 st.session_state.messages.append({"role": "user", "content": prompt})
                 with chat_container:
                     with st.chat_message("user"): st.markdown(prompt)
                 
                 with chat_container:
                     with st.chat_message("assistant"):
-                        with st.spinner(f"Processando Dossiê Quantitativo via Llama 3.1..."):
+                        with st.spinner("Compilando a matriz quantamental..."):
                             resp = generate_ai_response(prompt, contexto_invisivel, api_key, persona_ia)
                             st.markdown(resp)
                             st.session_state.messages.append({"role": "assistant", "content": resp})
