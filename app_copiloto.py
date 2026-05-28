@@ -5,7 +5,7 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from groq import Groq
-from typing import Tuple, Dict, Optional, Any, List
+from typing import Tuple, Dict, Optional, Any
 import math
 from datetime import datetime
 
@@ -13,7 +13,7 @@ from datetime import datetime
 # 1. CONFIGURAÇÃO DE INFRAESTRUTURA DE UI (FRONT-END INSTITUCIONAL)
 # ==============================================================================
 st.set_page_config(
-    page_title="Copiloto Financeiro IA | Oráculo Quantamental V11.0", 
+    page_title="Copiloto Financeiro IA | Oráculo Quantamental V11.1", 
     layout="wide", 
     initial_sidebar_state="expanded"
 )
@@ -38,10 +38,10 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # ==============================================================================
-# 2. BASE DE DADOS MACROECONÔMICA GLOBAL (KNOWLEDGE BASE V11.0)
+# 2. BASE DE DADOS MACROECONÔMICA GLOBAL (KNOWLEDGE BASE V11.1)
 # ==============================================================================
 GLOBAL_MACRO_CONTEXT = """
-[CENÁRIO MACROECONÔMICO E GEOPOLÍTICO GLOBAL - V11.0]
+[CENÁRIO MACROECONÔMICO E GEOPOLÍTICO GLOBAL - V11.1]
 - BRASIL (COPOM): Taxa Selic mantida em 14.50% ao ano, configurando um dos maiores juros reais do planeta. Este cenário restritivo asfixia o varejo, alavanca a dívida das empresas de construção e atrai massivamente o capital para a Renda Fixa (CDI). A curva DI Futuro (Jan/31 a 13.36%) precifica risco fiscal elevado (descontrole de gastos públicos). A desancoragem do IPCA (5.04% Focus) anula qualquer chance de corte de juros a curto prazo.
 - ESTADOS UNIDOS (FED): Federal Reserve mantém Fed Funds Rate no patamar de 3.50% - 3.75%. O Core CPI (inflação núcleo) cravado em 2.8% demonstra uma inflação de serviços rígida e resistente. O Dólar (DXY) fortalecido drena o capital de risco dos países emergentes, impactando a bolsa brasileira diretamente. O mercado de Treasuries (títulos de 10 anos) suga a liquidez de ações de dividendos.
 - EUROPA (BCE): Zona do Euro enfrenta estagnação econômica, liderada pela recessão industrial da Alemanha. O BCE encontra dificuldades entre cortar juros para salvar o crescimento ou mantê-los para combater a inflação fragmentada.
@@ -288,7 +288,7 @@ def plot_master_chart(df: pd.DataFrame, ticker: str, fibo: Dict[str, float]) -> 
     return fig
 
 # ==============================================================================
-# 6. MOTOR DE BACKTESTING VETORIZADO (NOVO)
+# 6. MOTOR DE BACKTESTING VETORIZADO
 # ==============================================================================
 def run_vectorized_backtest(df: pd.DataFrame, fast_period: int = 9, slow_period: int = 21) -> Dict[str, Any]:
     """
@@ -306,7 +306,7 @@ def run_vectorized_backtest(df: pd.DataFrame, fast_period: int = 9, slow_period:
     # Calcula retornos diários
     bt_df['Daily_Return'] = bt_df['Close_Price'].pct_change()
     
-    # Aplica o sinal deslocado em 1 dia (para evitar look-ahead bias - compra no fechamento, ganha no dia seguinte)
+    # Aplica o sinal deslocado em 1 dia (para evitar look-ahead bias)
     bt_df['Strategy_Return'] = bt_df['Signal'].shift(1) * bt_df['Daily_Return']
     
     # Curvas de Capital Acumuladas
@@ -324,9 +324,8 @@ def run_vectorized_backtest(df: pd.DataFrame, fast_period: int = 9, slow_period:
     
     # Contagem de Trades e Taxa de Acerto (Win Rate)
     bt_df['Trade_Change'] = bt_df['Signal'].diff()
-    trades = bt_df[bt_df['Trade_Change'] == 1] # Pontos de Entrada
+    trades = bt_df[bt_df['Trade_Change'] == 1]
     
-    # Estimativa simples de Win Rate baseada em retornos positivos nos dias comprados
     winning_days = len(bt_df[(bt_df['Signal'] == 1) & (bt_df['Daily_Return'] > 0)])
     losing_days = len(bt_df[(bt_df['Signal'] == 1) & (bt_df['Daily_Return'] <= 0)])
     total_active_days = winning_days + losing_days
@@ -342,13 +341,13 @@ def run_vectorized_backtest(df: pd.DataFrame, fast_period: int = 9, slow_period:
     }
 
 # ==============================================================================
-# 7. MOTOR DE SAZONALIDADE HISTÓRICA (NOVO)
+# 7. MOTOR DE SAZONALIDADE HISTÓRICA
 # ==============================================================================
 def calculate_seasonality(df: pd.DataFrame) -> pd.DataFrame:
     """Calcula o retorno médio percentual do ativo para cada mês do ano (Janeiro a Dezembro)."""
     df_saz = df.copy()
-    # Resample para mensal
-    monthly = df_saz['Close_Price'].resample('M').last()
+    # A atualização vital: alterado de 'M' para 'ME' para adequação às versões modernas do Pandas (>= 2.2.0)
+    monthly = df_saz['Close_Price'].resample('ME').last()
     monthly_ret = monthly.pct_change() * 100
     
     # Agrupa por mês do ano (1 a 12)
@@ -438,7 +437,7 @@ def generate_ai_response(prompt: str, context_data: str, api_key: str, persona: 
         else:
             foco = "Sua prioridade é analisar os fundamentos, o Balanço (P/L, ROE) e avaliar o risco paramétrico de Position Sizing."
         
-        system_instruction = f"""Você é o 'Oráculo Quantamental V11.0', o Cérebro Neural de uma Tesouraria Institucional de Elite.
+        system_instruction = f"""Você é o 'Oráculo Quantamental V11.1', o Cérebro Neural de uma Tesouraria Institucional de Elite.
         
         DIRETRIZES DA PERSONA ATUAL:
         {foco}
@@ -463,10 +462,10 @@ def generate_ai_response(prompt: str, context_data: str, api_key: str, persona: 
         return f"ALERTA CRÍTICO: Colapso na sinapse neural (API Groq). Verifique chave e conexão. Erro: {e}"
 
 # ==============================================================================
-# 11. THREAD PRINCIPAL DO TERMINAL (DASHBOARD & INTERFACE V11.0)
+# 11. THREAD PRINCIPAL DO TERMINAL (DASHBOARD & INTERFACE V11.1)
 # ==============================================================================
 def main():
-    st.title("Copiloto Financeiro IA | Oráculo Quantamental V11.0")
+    st.title("Copiloto Financeiro IA | Oráculo Quantamental V11.1")
     st.markdown("---")
 
     # BARRA LATERAL (CONTROLE DE MISSÃO)
@@ -486,7 +485,7 @@ def main():
         st.markdown("---")
         # Injeção Direta da API Key 
         api_key = "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"
-        st.success("🟢 SISTEMA CORE V11.0: ONLINE\n\n🔹 Backtest Engine: Operacional\n🔹 Sazonalidade: Operacional\n🔹 Oráculo Multi-Persona: Ativo")
+        st.success("🟢 SISTEMA CORE V11.1: ONLINE\n\n🔹 Backtest Engine: Operacional\n🔹 Sazonalidade: Operacional\n🔹 Oráculo Multi-Persona: Ativo")
 
     # INGESTÃO DE DADOS ASSÍNCRONA (CACHED)
     df_raw = fetch_market_data(ticker, period)
